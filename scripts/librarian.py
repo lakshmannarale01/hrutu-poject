@@ -193,4 +193,12 @@ class Librarian:
                 \t\t\tLibrarian Name   : {self.librarian_name}
                 """)
 
-    
+import csv
+
+def login_librarian(username, password):
+    with open("../data/librarian.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row["username"] == username and row["password"] == password:
+                return True
+    return False

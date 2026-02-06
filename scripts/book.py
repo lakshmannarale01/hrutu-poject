@@ -45,3 +45,13 @@ class Book:
                     \t\t\tBook Avail status : {self.book_availability_status}
                     \t\t\tBook Copies       : {self.book_copies}
                    """)
+
+import csv
+
+def get_books():
+    books = []
+    with open("../data/books.csv", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            books.append(row)
+    return books
