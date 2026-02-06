@@ -1,41 +1,24 @@
-import React, { useState } from "react";
-import api from "../api";
+import React from "react";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = async () => {
-    try {
-      await api.post("/student/login", { username, password });
-      alert("Login successful");
-    } catch {
-      alert("Invalid credentials");
-    }
-  };
-
   return (
-    <div className="flex justify-center p-8">
-      <div className="w-80 border p-4 rounded">
-        <h2 className="text-xl font-bold mb-4">Student Login</h2>
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="bg-white p-8 rounded-lg shadow w-full max-w-sm">
+        <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
 
         <input
-          className="border p-2 w-full mb-2"
+          type="text"
           placeholder="Username"
-          onChange={e => setUsername(e.target.value)}
+          className="w-full mb-3 px-4 py-2 border rounded"
         />
 
         <input
-          className="border p-2 w-full mb-2"
           type="password"
           placeholder="Password"
-          onChange={e => setPassword(e.target.value)}
+          className="w-full mb-4 px-4 py-2 border rounded"
         />
 
-        <button
-          className="bg-blue-600 text-white w-full p-2"
-          onClick={handleLogin}
-        >
+        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
           Login
         </button>
       </div>

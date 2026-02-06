@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../api";
+import BookCard from "../components/BookCard";
 
 export default function Books() {
   const [books, setBooks] = useState([]);
@@ -11,15 +12,14 @@ export default function Books() {
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Books</h2>
-      {books.length === 0 && <p>No books</p>}
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">Available Books</h2>
 
-      {books.map(book => (
-        <div key={book.id}>
-          <b>{book.title}</b> – {book.author}
-        </div>
-      ))}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {books.map(book => (
+          <BookCard key={book.id} book={book} />
+        ))}
+      </div>
     </div>
   );
 }
