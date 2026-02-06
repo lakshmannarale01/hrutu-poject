@@ -1,41 +1,28 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-
-from book import view_all_books, borrow_book, return_book
-from student import student_login
-from librarian import librarian_login
+from auth import authenticate_librarian
+from book import view_all_books
 
 app = Flask(__name__)
 CORS(app)
 
 
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    if authenticate_librarian(username, password):
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False}), 401
+
+
 @app.route("/books", methods=["GET"])
 def get_books():
-    return jsonify(view_all_books())
-
-
-@app.route("/borrow", methods=["POST"])
-def borrow():
-    data = request.json
-    return jsonify(borrow_book(data["book_id"], data["student_id"]))
-
-
-@app.route("/return", methods=["POST"])
-def return_api():
-    data = request.json
-    return jsonify(return_book(data["book_id"], data["student_id"]))
-
-
-@app.route("/login/student", methods=["POST"])
-def login_student():
-    data = request.json
-    return jsonify(student_login(data["id"], data["password"]))
-
-
-@app.route("/login/librarian", methods=["POST"])
-def login_librarian():
-    data = request.json
-    return jsonify(librarian_login(data["id"], data["password"]))
+    books = view_all_books()
+    return jsonify(books)
 
 
 if __name__ == "__main__":

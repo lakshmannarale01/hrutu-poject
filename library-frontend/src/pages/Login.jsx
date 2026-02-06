@@ -1,27 +1,58 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { librarianLogin } from "../api";
 
-export default function Login() {
+function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault(); // 🚨 VERY IMPORTANT
+
+    console.log("Login button clicked"); // debug
+    console.log(username, password);     // debug
+
+    try {
+      const response = await librarianLogin(username, password);
+      console.log("API response:", response);
+
+      if (response.success) {
+        navigate("/books");
+      } else {
+        alert("Invalid credentials");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Login failed");
+    }
+  };
+
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow w-full max-w-sm">
-        <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
+    <div style={{ padding: 40 }}>
+      <h2>Librarian Login</h2>
 
+      <form onSubmit={handleLogin}>
         <input
           type="text"
           placeholder="Username"
-          className="w-full mb-3 px-4 py-2 border rounded"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
+        <br /><br />
 
         <input
           type="password"
           placeholder="Password"
-          className="w-full mb-4 px-4 py-2 border rounded"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
+        <br /><br />
 
-        <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-          Login
-        </button>
-      </div>
+        <button type="submit">Login</button>
+      </form>
     </div>
   );
 }
+
+export default Login;
