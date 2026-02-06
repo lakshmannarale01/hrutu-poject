@@ -203,3 +203,16 @@ def login_student(username, password):
             if row["username"] == username and row["password"] == password:
                 return True
     return False
+
+import csv
+import os
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "students.csv")
+
+
+def student_login(student_id, password):
+    with open(DATA_PATH, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row["id"] == student_id and row["password"] == password:
+                return {"success": True}
+    return {"success": False, "message": "Invalid student credentials"}
