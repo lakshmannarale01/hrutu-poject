@@ -2,8 +2,7 @@ import csv
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CSV_PATH = os.path.join(BASE_DIR, "..", "data", "book.csv")
-
+CSV_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "data", "books.csv"))
 
 def view_all_books():
     books = []
@@ -14,3 +13,4 @@ def view_all_books():
             books.append(row)
 
     return books
+
