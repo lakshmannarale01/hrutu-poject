@@ -1,58 +1,23 @@
-class Book:
-    def __init__(self,
-                 book_id,
-                 book_name,
-                 book_author,
-                 book_publisher,
-                 book_publish_date,
-                 book_availability_status='True',
-                 book_copies='1',
-                 borrow_date=None):
-        self.book_id = book_id
-        self.book_name = book_name
-
-        if len(book_author) != 0:
-            self.book_author = book_author 
-        else:
-            self.book_author = 'Unknown'
-
-        if len(book_publisher) != 0:
-            self.book_publisher = book_publisher 
-        else:
-            self.book_publisher = 'Unknown'
-
-        if len(book_publish_date) != 0:
-            self.book_publish_date = book_publish_date 
-        else:
-            self.book_publish_date = 'Unknown'
-
-        self.book_copies = book_copies
-        if int(self.book_copies) > 0:
-            book_availability_status = 'True'
-        else:
-            book_availability_status = 'False'
-
-        self.book_availability_status = book_availability_status
-        self.borrow_date = borrow_date
-
-    def __str__(self):
-        return (f"""
-                    \t\t\tBook ID           : {self.book_id}
-                    \t\t\tBook Name         : {self.book_name}
-                    \t\t\tBook Author       : {self.book_author}
-                    \t\t\tBook Publisher    : {self.book_publisher}
-                    \t\t\tBook Publish Date : {self.book_publish_date}
-                    \t\t\tBook Avail status : {self.book_availability_status}
-                    \t\t\tBook Copies       : {self.book_copies}
-                   """)
-
 import csv
+import os
 
-def get_books():
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(BASE_DIR, "../data/books.csv")
+
+
+def view_all_books():
     books = []
-    with open("../data/books.csv", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            books.append(row)
-    return books
 
+    with open(CSV_PATH, newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        for idx, row in enumerate(reader, start=1):
+            books.append({
+                "id": idx,
+                "title": row.get("title") or row.get("Harry Potter and the Half-Blood Prince (Harry Potter #6)", ""),
+                "author": row.get("author") or row.get("J.K. Rowling/Mary GrandPré", ""),
+                "publisher": row.get("publisher") or row.get("Scholastic Inc.", ""),
+                "available": row.get("True", "False") == "True"
+            })
+
+    return books
