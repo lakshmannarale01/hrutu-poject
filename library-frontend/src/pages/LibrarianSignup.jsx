@@ -1,44 +1,30 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { signup } from "../api";
+import { registerLibrarian } from "../api";
 
-export default function Signup() {
-  const [data, setData] = useState({
-    student_id: "",
-    name: "",
-    department: "",
-    password: "",
-  });
+export default function LibrarianSignup() {
+  const [data, setData] = useState({ name: "", password: "" });
   const [message, setMessage] = useState("");
 
   const handle = async () => {
-    const res = await signup(data);
+    const res = await registerLibrarian(data);
     if (res.success) {
-      setMessage("Signup successful. Please log in.");
-      setData({ student_id: "", name: "", department: "", password: "" });
+      setMessage(`Librarian registered. Your ID is ${res.id}.`);
+      setData({ name: "", password: "" });
     } else {
-      setMessage(res.error || "Signup failed. Please try again.");
+      setMessage(res.error || "Registration failed.");
     }
   };
 
   return (
     <div className="glass mx-auto max-w-lg rounded-3xl p-8 sm:p-10">
       <p className="text-sm uppercase tracking-[0.4em] text-[#5a6b7b]">
-        Student Access
+        Librarian Access
       </p>
       <h2 className="mt-3 text-3xl font-semibold text-[#1c232b]">
-        Create a new account
+        Register a librarian
       </h2>
       <div className="mt-6 grid gap-4">
-        <label className="text-sm font-semibold text-[#1c232b]">
-          Student ID
-          <input
-            placeholder="e.g. st0012"
-            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
-            value={data.student_id}
-            onChange={(e) => setData({ ...data, student_id: e.target.value })}
-          />
-        </label>
         <label className="text-sm font-semibold text-[#1c232b]">
           Name
           <input
@@ -46,15 +32,6 @@ export default function Signup() {
             className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
             value={data.name}
             onChange={(e) => setData({ ...data, name: e.target.value })}
-          />
-        </label>
-        <label className="text-sm font-semibold text-[#1c232b]">
-          Department
-          <input
-            placeholder="e.g. CSE"
-            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
-            value={data.department}
-            onChange={(e) => setData({ ...data, department: e.target.value })}
           />
         </label>
         <label className="text-sm font-semibold text-[#1c232b]">
@@ -69,9 +46,9 @@ export default function Signup() {
         </label>
         <button
           onClick={handle}
-          className="mt-2 inline-flex items-center justify-center rounded-full bg-[#0f4c5c] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0f4c5c]/30 transition hover:-translate-y-0.5 hover:bg-[#0d3d4b]"
+          className="mt-2 inline-flex items-center justify-center rounded-full bg-[#e36414] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#e36414]/30 transition hover:-translate-y-0.5 hover:bg-[#c45412]"
         >
-          Create account
+          Register librarian
         </button>
         {message && (
           <p className="rounded-2xl border border-[#1c232b]/10 bg-white/70 px-4 py-3 text-sm text-[#1c232b]">
@@ -79,8 +56,8 @@ export default function Signup() {
           </p>
         )}
         <p className="text-sm text-[#5a6b7b]">
-          Already registered?{" "}
-          <Link to="/login?role=student" className="font-semibold text-[#0f4c5c]">
+          Already have an account?{" "}
+          <Link to="/login?role=librarian" className="font-semibold text-[#0f4c5c]">
             Login here
           </Link>
         </p>
