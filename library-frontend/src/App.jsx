@@ -1,18 +1,15 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Books from "./pages/Books";
+import React, { useState } from "react";
 import Login from "./pages/Login";
+import Books from "./pages/Books";
 
-export default function App() {
-  return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Navigate to="/books" />} />
-        <Route path="/books" element={<Books />} />
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    </>
+function App() {
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  return loggedIn ? (
+    <Books />
+  ) : (
+    <Login onLogin={() => setLoggedIn(true)} />
   );
 }
+
+export default App;

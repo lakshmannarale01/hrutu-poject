@@ -1,17 +1,18 @@
 const BASE_URL = "http://127.0.0.1:8000";
 
-export async function getBooks() {
-  console.log("Calling /books API");
-  const response = await fetch(`${BASE_URL}/books`);
-  return response.json();
-}
-
-export async function librarianLogin(username, password) {
-  const response = await fetch(`${BASE_URL}/login`, {
+export const login = async (username, password) => {
+  const res = await fetch(`${BASE_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
 
-  return response.json();
-}
+  if (!res.ok) throw new Error("Login failed");
+  return res.json();
+};
+
+export const getBooks = async () => {
+  const res = await fetch(`${BASE_URL}/books`);
+  if (!res.ok) throw new Error("Books fetch failed");
+  return res.json();
+};

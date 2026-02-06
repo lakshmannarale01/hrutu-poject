@@ -4,25 +4,24 @@ from auth import authenticate_librarian
 from book import view_all_books
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
-    username = data.get("username")
-    password = data.get("password")
-
-    if authenticate_librarian(username, password):
+    if authenticate_librarian(data.get("username"), data.get("password")):
         return jsonify({"success": True})
-    else:
-        return jsonify({"success": False}), 401
+    return jsonify({"success": False}), 401
 
 
 @app.route("/books", methods=["GET"])
 def get_books():
-    books = view_all_books()
-    return jsonify(books)
+    try:
+        return jsonify(view_all_books())
+    except Exception as e:
+        print("BOOK ERROR:", e)
+        return jsonify({"error": "Failed to load books"}), 500
 
 
 if __name__ == "__main__":
