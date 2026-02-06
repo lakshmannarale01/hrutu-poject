@@ -6,25 +6,23 @@ import BookCard from "../components/BookCard";
 export default function Books() {
   const [books, setBooks] = useState([]);
 
+  const loadBooks = () => {
+    getBooks().then(setBooks);
+  };
+
   useEffect(() => {
-    getBooks()
-      .then(setBooks)
-      .catch((err) => console.error("Books fetch error:", err));
+    getBooks().then(setBooks);
   }, []);
 
   return (
     <div>
       <h2>Available Books</h2>
-      {books.length === 0 ? (
-        <p>No books available</p>
-      ) : (
-        <ul>
-          {books.map((book, index) => (
-            <BookCard key={index} book={book} />
-          ))}
 
-        </ul>
-      )}
+      <AddBook onAdded={loadBooks} />
+
+      {books.map((book, index) => (
+        <BookCard key={index} book={book} />
+      ))}
     </div>
   );
 }

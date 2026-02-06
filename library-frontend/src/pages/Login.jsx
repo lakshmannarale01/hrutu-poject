@@ -4,19 +4,41 @@ import { login } from "../api";   // ✅ FIXED PATH
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const success = await login(username, password);
-    if (success) onLogin();
-    else alert("Invalid credentials");
+  const handleLogin = async () => {
+    try {
+      const res = await login(username, password);
+      if (res.success) {
+        onLogin();
+      } else {
+        setError("Invalid credentials");
+      }
+    } catch {
+      setError("Server error");
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input value={username} onChange={(e) => setUsername(e.target.value)} />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <h2>Librarian Login</h2>
+
+      <input
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button onClick={handleLogin}>Login</button>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
   );
 }

@@ -23,6 +23,16 @@ def get_books():
         print("BOOK ERROR:", e)
         return jsonify({"error": "Failed to load books"}), 500
 
+@app.route("/addbooks", methods=["POST"])
+def add_book():
+    data = request.json
+    books.append({
+        "title": data["title"],
+        "author": data["author"],
+        "publisher": data["publisher"],
+        "issued": False
+    })
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

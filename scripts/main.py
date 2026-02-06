@@ -4,7 +4,11 @@ from student import *
 from librarian import *
 from pwinput import pwinput
 import os
+from flask import Flask
+from flask_cors import CORS
 
+app = Flask(__name__)
+CORS(app)   # <-- REQUIRED
 # This method is the starting point of the application
 def start():
     wrong_option = 5
