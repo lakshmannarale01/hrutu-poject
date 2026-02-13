@@ -21,7 +21,7 @@ function App() {
         onLogout={() => setAuth(null)}
       />
       <main className="px-4 sm:px-8 lg:px-12 py-10">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-6xl color-[#1c232b]/80 mb-10 rounded-lg bg-gradient-to-br from-[#0f4c5c]/20 to-[#2a9d8f]/20 p-6 text-center text-sm font-medium shadow">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route

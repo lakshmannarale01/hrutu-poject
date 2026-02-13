@@ -13,7 +13,7 @@ export default function Navbar({ loggedIn, role, userName, onLogout }) {
           <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#0f4c5c] to-[#2a9d8f] shadow-lg" />
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-[#5a6b7b]">Library</p>
-            <h1 className="text-lg font-semibold text-[#1c232b]">Atlas Shelf</h1>
+            <h1 className="text-lg font-semibold text-[#1c232b]">MGM Library</h1>
           </div>
         </NavLink>
 
@@ -82,11 +82,8 @@ export default function Navbar({ loggedIn, role, userName, onLogout }) {
               Logout
             </button>
           ) : (
-            <NavLink
-              to="/login"
-              className="rounded-full bg-[#0f4c5c] px-4 py-2 text-sm font-semibold text-white shadow"
-            >
-              Secure Login
+            <NavLink>
+              
             </NavLink>
           )}
         </div>
