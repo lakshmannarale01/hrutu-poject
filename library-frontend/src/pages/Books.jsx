@@ -17,8 +17,12 @@ export default function Books({ role, user }) {
   const [query, setQuery] = useState("");
   const [borrowed, setBorrowed] = useState([]);
   const [fines, setFines] = useState({ total: 0, items: [] });
+  const [loadingBooks, setLoadingBooks] = useState(true);
+  const [booksError, setBooksError] = useState("");
   const [status, setStatus] = useState("");
+  const [librarianTab, setLibrarianTab] = useState("add");
   const [editId, setEditId] = useState("");
+  const [stockToAdd, setStockToAdd] = useState("1");
   const [editForm, setEditForm] = useState({
     title: "",
     author: "",
@@ -27,12 +31,27 @@ export default function Books({ role, user }) {
     quantity: "",
   });
 
-  const loadBooks = () => {
-    getBooks().then(setBooks);
+  const loadBooks = async () => {
+    setLoadingBooks(true);
+    setBooksError("");
+    try {
+      const data = await getBooks();
+      if (Array.isArray(data)) {
+        setBooks(data);
+      } else {
+        setBooks([]);
+        setBooksError(data?.error || "Unable to load books.");
+      }
+    } catch {
+      setBooks([]);
+      setBooksError("Unable to connect to the server.");
+    } finally {
+      setLoadingBooks(false);
+    }
   };
 
   useEffect(() => {
-    getBooks().then(setBooks);
+    loadBooks();
   }, []);
 
   const loadBorrowed = async () => {
@@ -47,24 +66,26 @@ export default function Books({ role, user }) {
     loadBorrowed();
   }, [role, user?.id]);
 
+  const safeBooks = Array.isArray(books) ? books : [];
+
   const filteredBooks = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return books;
-    return books.filter((book) =>
+    if (!normalized) return safeBooks;
+    return safeBooks.filter((book) =>
       [book.title, book.author, book.publisher]
         .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(normalized))
+        .some((value) => String(value).toLowerCase().includes(normalized))
     );
-  }, [books, query]);
+  }, [safeBooks, query]);
 
-  const availableCount = books.filter((book) => book.available).length;
+  const availableCount = safeBooks.filter((book) => book.available).length;
 
   const handleBorrow = async (bookId) => {
     const res = await borrowBook(user.id, bookId);
     if (res.success) {
       setStatus("Book borrowed successfully.");
-      loadBooks();
-      loadBorrowed();
+      await loadBooks();
+      await loadBorrowed();
     } else {
       setStatus(res.error || "Unable to borrow the book.");
     }
@@ -74,8 +95,8 @@ export default function Books({ role, user }) {
     const res = await returnBook(user.id, bookId);
     if (res.success) {
       setStatus("Book returned successfully.");
-      loadBooks();
-      loadBorrowed();
+      await loadBooks();
+      await loadBorrowed();
     } else {
       setStatus(res.error || "Unable to return the book.");
     }
@@ -97,7 +118,7 @@ export default function Books({ role, user }) {
     const res = await updateBook(editId, editForm);
     if (res.success) {
       setStatus("Book updated successfully.");
-      loadBooks();
+      await loadBooks();
     } else {
       setStatus(res.error || "Update failed.");
     }
@@ -107,9 +128,35 @@ export default function Books({ role, user }) {
     const res = await deleteBook(bookId);
     if (res.success) {
       setStatus("Book removed successfully.");
-      loadBooks();
+      await loadBooks();
     } else {
       setStatus(res.error || "Remove failed.");
+    }
+  };
+
+  const handleAddStock = async () => {
+    if (!editId) {
+      setStatus("Select a book first.");
+      return;
+    }
+    const increment = Number(stockToAdd);
+    if (!Number.isFinite(increment) || increment <= 0) {
+      setStatus("Enter a valid stock quantity to add.");
+      return;
+    }
+    const selected = safeBooks.find((book) => book.id === editId);
+    if (!selected) {
+      setStatus("Selected book not found.");
+      return;
+    }
+    const currentQty = Number(selected.quantity) || 0;
+    const res = await updateBook(editId, { quantity: currentQty + increment });
+    if (res.success) {
+      setStatus(`Added ${increment} item(s) to stock.`);
+      setStockToAdd("1");
+      await loadBooks();
+    } else {
+      setStatus(res.error || "Unable to add stock.");
     }
   };
 
@@ -144,7 +191,7 @@ export default function Books({ role, user }) {
                 Total Titles
               </p>
               <p className="mt-2 text-2xl font-semibold text-[#1c232b]">
-                {books.length}
+                {safeBooks.length}
               </p>
             </div>
             <div className="rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center">
@@ -160,7 +207,7 @@ export default function Books({ role, user }) {
                 Issued
               </p>
               <p className="mt-2 text-2xl font-semibold text-[#1c232b]">
-                {books.length - availableCount}
+                {safeBooks.length - availableCount}
               </p>
             </div>
           </div>
@@ -181,126 +228,187 @@ export default function Books({ role, user }) {
             />
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredBooks.map((book, index) => (
-              <BookCard
-                key={index}
-                book={book}
-                action={
-                  role === "student" && (
-                    <button
-                      onClick={() => handleBorrow(book.id)}
-                      disabled={!book.available}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                        book.available
-                          ? "bg-[#0f4c5c] text-white hover:bg-[#0d3d4b]"
-                          : "cursor-not-allowed bg-gray-200 text-gray-500"
-                      }`}
-                    >
-                      Borrow
-                    </button>
-                  )
-                }
-              />
-            ))}
-            {filteredBooks.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-[#1c232b]/20 bg-white/70 p-6 text-sm text-[#5a6b7b]">
-                No matching books yet. Try a different search term.
-              </div>
-            )}
-          </div>
+          {loadingBooks ? (
+            <div className="mt-6 rounded-2xl border border-[#1c232b]/10 bg-white/70 p-6 text-sm text-[#5a6b7b]">
+              Loading books...
+            </div>
+          ) : booksError ? (
+            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+              {booksError}
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredBooks.map((book) => (
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  action={
+                    role === "student" && (
+                      <button
+                        onClick={() => handleBorrow(book.id)}
+                        disabled={!book.available}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          book.available
+                            ? "bg-[#0f4c5c] text-white hover:bg-[#0d3d4b]"
+                            : "cursor-not-allowed bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        Borrow
+                      </button>
+                    )
+                  }
+                />
+              ))}
+              {filteredBooks.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-[#1c232b]/20 bg-white/70 p-6 text-sm text-[#5a6b7b]">
+                  No matching books yet. Try a different search term.
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="glass animate-fade-up rounded-3xl p-6 sm:p-8">
           {role === "librarian" ? (
             <div className="grid gap-8">
-              <AddBook onAdded={loadBooks} />
-              <div>
-                <p className="text-sm uppercase tracking-[0.4em] text-[#5a6b7b]">
-                  Manage Catalog
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold text-[#1c232b]">
-                  Update or remove a book
-                </h3>
-                <div className="mt-4 grid gap-3">
-                  <select
-                    value={editId}
-                    onChange={(event) => {
-                      const selected = books.find(
-                        (book) => book.id === event.target.value
-                      );
-                      if (selected) handleSelectEdit(selected);
-                      else setEditId("");
-                    }}
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  >
-                    <option value="">Select a book</option>
-                    {books.map((book) => (
-                      <option key={book.id} value={book.id}>
-                        {book.title}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    placeholder="Title"
-                    value={editForm.title}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, title: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  />
-                  <input
-                    placeholder="Author"
-                    value={editForm.author}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, author: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  />
-                  <input
-                    placeholder="Publisher"
-                    value={editForm.publisher}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, publisher: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  />
-                  <input
-                    placeholder="Publish Date"
-                    value={editForm.publish_date}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, publish_date: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Quantity"
-                    value={editForm.quantity}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, quantity: e.target.value })
-                    }
-                    className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
-                  />
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={handleUpdate}
-                      disabled={!editId}
-                      className="rounded-full bg-[#0f4c5c] px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-[#0d3d4b] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+              <div className="flex flex-wrap gap-2 rounded-2xl border border-white/50 bg-white/70 p-2">
+                <button
+                  onClick={() => setLibrarianTab("add")}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition ${
+                    librarianTab === "add"
+                      ? "bg-[#0f4c5c] text-white shadow"
+                      : "text-[#5a6b7b]"
+                  }`}
+                >
+                  Add New Book
+                </button>
+                <button
+                  onClick={() => setLibrarianTab("manage")}
+                  className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition ${
+                    librarianTab === "manage"
+                      ? "bg-[#0f4c5c] text-white shadow"
+                      : "text-[#5a6b7b]"
+                  }`}
+                >
+                  Manage Books
+                </button>
+              </div>
+
+              {librarianTab === "add" ? (
+                <AddBook
+                  onAdded={async () => {
+                    await loadBooks();
+                    setStatus("Book added successfully.");
+                  }}
+                />
+              ) : (
+                <div>
+                  <p className="text-sm uppercase tracking-[0.4em] text-[#5a6b7b]">
+                    Manage Catalog
+                  </p>
+                  <h3 className="mt-3 text-2xl font-semibold text-[#1c232b]">
+                    Update or remove a book
+                  </h3>
+                  <div className="mt-4 grid gap-3">
+                    <select
+                      value={editId}
+                      onChange={(event) => {
+                        const selected = safeBooks.find(
+                          (book) => book.id === event.target.value
+                        );
+                        if (selected) handleSelectEdit(selected);
+                        else setEditId("");
+                      }}
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
                     >
-                      Update
-                    </button>
-                    <button
-                      onClick={() => handleDelete(editId)}
-                      disabled={!editId}
-                      className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
-                    >
-                      Remove
-                    </button>
+                      <option value="">Select a book</option>
+                      {safeBooks.map((book) => (
+                        <option key={book.id} value={book.id}>
+                          {book.title}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      placeholder="Title"
+                      value={editForm.title}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, title: e.target.value })
+                      }
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                    />
+                    <input
+                      placeholder="Author"
+                      value={editForm.author}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, author: e.target.value })
+                      }
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                    />
+                    <input
+                      placeholder="Publisher"
+                      value={editForm.publisher}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, publisher: e.target.value })
+                      }
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                    />
+                    <input
+                      placeholder="Publish Date"
+                      value={editForm.publish_date}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          publish_date: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Quantity"
+                      value={editForm.quantity}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, quantity: e.target.value })
+                      }
+                      className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Stock to add"
+                        value={stockToAdd}
+                        onChange={(e) => setStockToAdd(e.target.value)}
+                        className="w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-sm text-[#1c232b] shadow-sm"
+                      />
+                      <button
+                        onClick={handleAddStock}
+                        disabled={!editId}
+                        className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                      >
+                        Add Stock
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={handleUpdate}
+                        disabled={!editId}
+                        className="rounded-full bg-[#0f4c5c] px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-[#0d3d4b] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                      >
+                        Update
+                      </button>
+                      <button
+                        onClick={() => handleDelete(editId)}
+                        disabled={!editId}
+                        className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div>

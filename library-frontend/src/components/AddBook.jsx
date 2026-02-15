@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { addBook } from "../api";
 
 export default function AddBook({ onAdded }) {
@@ -7,21 +7,40 @@ export default function AddBook({ onAdded }) {
   const [publisher, setPublisher] = useState("");
   const [publishDate, setPublishDate] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState("");
 
   const handleAdd = async () => {
-    if (!title || !author) {
+    if (!title.trim() || !author.trim()) {
       setStatus("Title and author are required.");
       return;
     }
-    await addBook({ title, author, publisher, publish_date: publishDate, quantity });
-    setTitle("");
-    setAuthor("");
-    setPublisher("");
-    setPublishDate("");
-    setQuantity("1");
-    setStatus("Book added successfully.");
-    if (onAdded) onAdded();
+    setSubmitting(true);
+    setStatus("");
+    try {
+      const res = await addBook({
+        title: title.trim(),
+        author: author.trim(),
+        publisher: publisher.trim(),
+        publish_date: publishDate.trim(),
+        quantity,
+      });
+      if (!res.success) {
+        setStatus(res.error || "Unable to add book.");
+        return;
+      }
+      setTitle("");
+      setAuthor("");
+      setPublisher("");
+      setPublishDate("");
+      setQuantity("1");
+      setStatus("Book added successfully.");
+      if (onAdded) await onAdded();
+    } catch {
+      setStatus("Unable to connect to the server.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -87,9 +106,10 @@ export default function AddBook({ onAdded }) {
 
       <button
         onClick={handleAdd}
+        disabled={submitting}
         className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[#e36414] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#e36414]/30 transition hover:-translate-y-0.5 hover:bg-[#c45412]"
       >
-        Add book
+        {submitting ? "Adding..." : "Add book"}
       </button>
 
       {status && (
