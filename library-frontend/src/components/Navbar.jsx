@@ -38,6 +38,22 @@ export default function Navbar({ loggedIn, role, userName, onLogout }) {
               Dashboard
             </NavLink>
           )}
+          {loggedIn && role === "student" && (
+            <NavLink
+              to="/student-profile"
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : ""}`}
+            >
+              Profile
+            </NavLink>
+          )}
+          {loggedIn && role === "librarian" && (
+            <NavLink
+              to="/librarian-profile"
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : ""}`}
+            >
+              Profile
+            </NavLink>
+          )}
           {!loggedIn && (
             <>
               <NavLink
@@ -71,7 +87,7 @@ export default function Navbar({ loggedIn, role, userName, onLogout }) {
         <div className="flex items-center gap-3">
           <span className="hidden text-sm text-[#5a6b7b] md:inline">
             {loggedIn
-              ? `${userName || "User"} · ${role === "librarian" ? "Librarian" : "Student"}`
+              ? `${userName || "User"} | ${role === "librarian" ? "Librarian" : "Student"}`
               : "Staff portal"}
           </span>
           {loggedIn ? (
@@ -82,9 +98,7 @@ export default function Navbar({ loggedIn, role, userName, onLogout }) {
               Logout
             </button>
           ) : (
-            <NavLink>
-              
-            </NavLink>
+            <div />
           )}
         </div>
       </div>

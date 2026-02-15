@@ -3,14 +3,26 @@ import { Link } from "react-router-dom";
 import { registerLibrarian } from "../api";
 
 export default function LibrarianSignup() {
-  const [data, setData] = useState({ name: "", password: "" });
+  const [data, setData] = useState({
+    name: "",
+    institution: "",
+    department: "",
+    address: "",
+    password: "",
+  });
   const [message, setMessage] = useState("");
 
   const handle = async () => {
     const res = await registerLibrarian(data);
     if (res.success) {
       setMessage(`Librarian registered. Your ID is ${res.id}.`);
-      setData({ name: "", password: "" });
+      setData({
+        name: "",
+        institution: "",
+        department: "",
+        address: "",
+        password: "",
+      });
     } else {
       setMessage(res.error || "Registration failed.");
     }
@@ -32,6 +44,34 @@ export default function LibrarianSignup() {
             className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
             value={data.name}
             onChange={(e) => setData({ ...data, name: e.target.value })}
+          />
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
+          College / Institute
+          <input
+            placeholder="e.g. MGM University"
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            value={data.institution}
+            onChange={(e) => setData({ ...data, institution: e.target.value })}
+          />
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
+          Department
+          <input
+            placeholder="e.g. Library Sciences"
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            value={data.department}
+            onChange={(e) => setData({ ...data, department: e.target.value })}
+          />
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
+          Address
+          <textarea
+            placeholder="Enter address"
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            rows={3}
+            value={data.address}
+            onChange={(e) => setData({ ...data, address: e.target.value })}
           />
         </label>
         <label className="text-sm font-semibold text-[#1c232b]">

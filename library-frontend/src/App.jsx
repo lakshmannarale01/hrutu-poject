@@ -7,6 +7,8 @@ import Signup from "./pages/Signup";
 import Books from "./pages/Books";
 import Dashboard from "./pages/Dashboard";
 import LibrarianSignup from "./pages/LibrarianSignup";
+import StudentProfile from "./pages/StudentProfile";
+import LibrarianProfile from "./pages/LibrarianProfile";
 
 function App() {
   const [auth, setAuth] = useState(null);
@@ -45,6 +47,36 @@ function App() {
               element={
                 loggedIn && auth?.role === "librarian" ? (
                   <Dashboard />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/student-profile"
+              element={
+                loggedIn && auth?.role === "student" ? (
+                  <StudentProfile
+                    user={auth}
+                    onProfileUpdated={(profile) =>
+                      setAuth((prev) => ({ ...prev, ...profile }))
+                    }
+                  />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
+            />
+            <Route
+              path="/librarian-profile"
+              element={
+                loggedIn && auth?.role === "librarian" ? (
+                  <LibrarianProfile
+                    user={auth}
+                    onProfileUpdated={(profile) =>
+                      setAuth((prev) => ({ ...prev, ...profile }))
+                    }
+                  />
                 ) : (
                   <Navigate to="/login" replace />
                 )

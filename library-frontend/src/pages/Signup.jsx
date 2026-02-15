@@ -6,7 +6,10 @@ export default function Signup() {
   const [data, setData] = useState({
     student_id: "",
     name: "",
+    institution: "",
     department: "",
+    year: "",
+    address: "",
     password: "",
   });
   const [message, setMessage] = useState("");
@@ -15,7 +18,15 @@ export default function Signup() {
     const res = await signup(data);
     if (res.success) {
       setMessage("Signup successful. Please log in.");
-      setData({ student_id: "", name: "", department: "", password: "" });
+      setData({
+        student_id: "",
+        name: "",
+        institution: "",
+        department: "",
+        year: "",
+        address: "",
+        password: "",
+      });
     } else {
       setMessage(res.error || "Signup failed. Please try again.");
     }
@@ -49,12 +60,45 @@ export default function Signup() {
           />
         </label>
         <label className="text-sm font-semibold text-[#1c232b]">
+          College / Institute
+          <input
+            placeholder="e.g. MGM University"
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            value={data.institution}
+            onChange={(e) => setData({ ...data, institution: e.target.value })}
+          />
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
           Department
           <input
             placeholder="e.g. CSE"
             className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
             value={data.department}
             onChange={(e) => setData({ ...data, department: e.target.value })}
+          />
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
+          Year
+          <select
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            value={data.year}
+            onChange={(e) => setData({ ...data, year: e.target.value })}
+          >
+            <option value="">Select year</option>
+            <option value="1st year">1st year</option>
+            <option value="2nd year">2nd year</option>
+            <option value="3rd year">3rd year</option>
+            <option value="4th year">4th year</option>
+          </select>
+        </label>
+        <label className="text-sm font-semibold text-[#1c232b]">
+          Address
+          <textarea
+            placeholder="Enter address"
+            className="mt-2 w-full rounded-2xl border border-[#1c232b]/10 bg-white px-4 py-3 text-base text-[#1c232b] shadow-sm outline-none transition focus:border-[#0f4c5c]/60 focus:ring-2 focus:ring-[#0f4c5c]/20"
+            rows={3}
+            value={data.address}
+            onChange={(e) => setData({ ...data, address: e.target.value })}
           />
         </label>
         <label className="text-sm font-semibold text-[#1c232b]">

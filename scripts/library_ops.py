@@ -1,6 +1,7 @@
 import csv
 import datetime
 import os
+import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -9,6 +10,7 @@ BORROWS_CSV = os.path.join(DATA_DIR, "all_borrows.csv")
 TRANSACTIONS_CSV = os.path.join(DATA_DIR, "all_transactions.csv")
 STUDENTS_CSV = os.path.join(DATA_DIR, "students.csv")
 LIBRARIAN_CSV = os.path.join(DATA_DIR, "librarian.csv")
+FINE_PAYMENTS_CSV = os.path.join(DATA_DIR, "fine_payments.csv")
 
 
 def _parse_bool(value):
@@ -31,9 +33,19 @@ def _read_rows(path):
 
 
 def _write_rows(path, rows):
-    with open(path, "w", newline="", encoding="utf-8") as file:
-        writer = csv.writer(file)
-        writer.writerows(rows)
+    last_error = None
+    for _ in range(5):
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerows(rows)
+            return
+        except PermissionError as error:
+            last_error = error
+            time.sleep(0.2)
+    raise PermissionError(
+        f"Unable to write file '{path}'. Close any app using it (Excel/OneDrive sync) and try again."
+    ) from last_error
 
 
 def _next_id(prefix, rows):
@@ -140,10 +152,19 @@ def remove_book(book_id):
     return removed
 
 
-def register_librarian(name, password):
+def register_librarian(name, password, institution, department, address):
     rows = _read_rows(LIBRARIAN_CSV)
     librarian_id = _next_id("lb", rows)
-    rows.append([librarian_id, name.strip(), password.strip()])
+    rows.append(
+        [
+            librarian_id,
+            name.strip(),
+            password.strip(),
+            institution.strip(),
+            department.strip(),
+            address.strip(),
+        ]
+    )
     _write_rows(LIBRARIAN_CSV, rows)
     return librarian_id
 
@@ -237,7 +258,292 @@ def check_fines(student_id):
         fine = (days // 7) * 20
         total += fine
         items.append({**book, "days": days, "fine": fine})
-    return {"total": total, "items": items}
+    paid = 0
+    payments = []
+    for row in _read_rows(FINE_PAYMENTS_CSV):
+        if len(row) < 5 or row[1] != student_id:
+            continue
+        amount = float(row[2]) if row[2] else 0.0
+        paid += amount
+        payments.append(
+            {
+                "payment_id": row[0],
+                "amount": amount,
+                "paid_on": row[3],
+                "method": row[4],
+                "reference": row[5] if len(row) > 5 else "",
+            }
+        )
+    due = max(0.0, total - paid)
+    return {"total": due, "gross_total": total, "paid": paid, "items": items, "payments": payments}
+
+
+def pay_fine(student_id, amount, method="qr", reference=""):
+    fines = check_fines(student_id)
+    due = fines["total"]
+    if due <= 0:
+        return False, "No pending fine.", None
+    if amount <= 0:
+        return False, "Amount must be greater than zero.", None
+    if amount > due:
+        return False, f"Amount exceeds due fine. Current due is Rs. {due:.2f}.", None
+
+    rows = _read_rows(FINE_PAYMENTS_CSV)
+    payment_id = _next_id("fp", rows)
+    today = _today()
+    rows.append([payment_id, student_id, f"{amount:.2f}", today, method, reference.strip()])
+    _write_rows(FINE_PAYMENTS_CSV, rows)
+    updated = check_fines(student_id)
+    return True, None, {
+        "payment_id": payment_id,
+        "amount": amount,
+        "paid_on": today,
+        "remaining_due": updated["total"],
+    }
+
+
+def get_student_profile(student_id):
+    student = None
+    for row in _read_rows(STUDENTS_CSV):
+        if len(row) < 4:
+            continue
+        if row[0] == student_id:
+            if len(row) > 6:
+                institution = row[3]
+                department = row[4]
+                year = row[5]
+                address = row[6]
+            else:
+                institution = ""
+                department = row[3] if len(row) > 3 else ""
+                year = ""
+                address = ""
+            student = {
+                "id": row[0],
+                "name": row[1],
+                "institution": institution,
+                "department": department,
+                "year": year,
+                "address": address,
+                "role": "student",
+            }
+            break
+    if not student:
+        return None
+
+    borrows = get_borrowed_books(student_id)
+    fines = check_fines(student_id)
+    return {
+        **student,
+        "borrowed_count": len(borrows),
+        "borrowed_books": borrows,
+        "fines": fines,
+    }
+
+
+def get_librarian_profile(librarian_id):
+    librarian = None
+    for row in _read_rows(LIBRARIAN_CSV):
+        if len(row) < 2:
+            continue
+        if row[0] == librarian_id:
+            # Supports both:
+            # new format: id,name,password,institution,department,address
+            # old format: id,name,password,institution,department,year,address
+            if len(row) > 6:
+                address = row[6]
+            elif len(row) > 5:
+                address = row[5]
+            else:
+                address = ""
+            librarian = {
+                "id": row[0],
+                "name": row[1],
+                "institution": row[3] if len(row) > 3 else "",
+                "department": row[4] if len(row) > 4 else "",
+                "address": address,
+                "role": "librarian",
+            }
+            break
+    if not librarian:
+        return None
+
+    books = list_books()
+    total = len(books)
+    available = len([book for book in books if book["available"]])
+    issued = total - available
+    return {
+        **librarian,
+        "catalog_stats": {
+            "total_books": total,
+            "available_books": available,
+            "issued_books": issued,
+        },
+    }
+
+
+def update_student_profile(student_id, payload):
+    rows = _read_rows(STUDENTS_CSV)
+    updated = None
+    for idx, row in enumerate(rows):
+        if len(row) < 4:
+            continue
+        if row[0] != student_id:
+            continue
+
+        if len(row) > 6:
+            institution = row[3]
+            department = row[4]
+            year = row[5]
+            address = row[6]
+        else:
+            institution = ""
+            department = row[3] if len(row) > 3 else ""
+            year = ""
+            address = ""
+
+        next_row = [
+            row[0],
+            payload.get("name", row[1]).strip(),
+            row[2],  # do not edit password in profile flow
+            payload.get("institution", institution).strip(),
+            payload.get("department", department).strip(),
+            payload.get("year", year).strip(),
+            payload.get("address", address).strip(),
+        ]
+        if not all([next_row[1], next_row[3], next_row[4], next_row[5], next_row[6]]):
+            return False, "All profile fields are required.", None
+        rows[idx] = next_row
+        updated = {
+            "id": next_row[0],
+            "name": next_row[1],
+            "institution": next_row[3],
+            "department": next_row[4],
+            "year": next_row[5],
+            "address": next_row[6],
+            "role": "student",
+        }
+        break
+
+    if updated is None:
+        return False, "Student not found.", None
+
+    _write_rows(STUDENTS_CSV, rows)
+    return True, None, updated
+
+
+def update_librarian_profile(librarian_id, payload):
+    rows = _read_rows(LIBRARIAN_CSV)
+    updated = None
+    for idx, row in enumerate(rows):
+        if len(row) < 3:
+            continue
+        if row[0] != librarian_id:
+            continue
+
+        institution = row[3] if len(row) > 3 else ""
+        department = row[4] if len(row) > 4 else ""
+        if len(row) > 6:
+            address = row[6]
+        elif len(row) > 5:
+            address = row[5]
+        else:
+            address = ""
+
+        next_row = [
+            row[0],
+            payload.get("name", row[1]).strip(),
+            row[2],  # do not edit password in profile flow
+            payload.get("institution", institution).strip(),
+            payload.get("department", department).strip(),
+            payload.get("address", address).strip(),
+        ]
+        if not all([next_row[1], next_row[3], next_row[4], next_row[5]]):
+            return False, "All profile fields are required.", None
+        rows[idx] = next_row
+        updated = {
+            "id": next_row[0],
+            "name": next_row[1],
+            "institution": next_row[3],
+            "department": next_row[4],
+            "address": next_row[5],
+            "role": "librarian",
+        }
+        break
+
+    if updated is None:
+        return False, "Librarian not found.", None
+
+    _write_rows(LIBRARIAN_CSV, rows)
+    return True, None, updated
+
+
+def get_librarian_dashboard_data():
+    books = list_books()
+    total_books = len(books)
+    available_books = len([book for book in books if book["available"]])
+    issued_books = total_books - available_books
+
+    students = []
+    total_due_fines = 0.0
+    for row in _read_rows(STUDENTS_CSV):
+        if len(row) < 4:
+            continue
+        student_id = row[0]
+        if len(row) > 6:
+            institution = row[3]
+            department = row[4]
+            year = row[5]
+            address = row[6]
+        else:
+            institution = ""
+            department = row[3]
+            year = ""
+            address = ""
+        borrows = get_borrowed_books(student_id)
+        fines = check_fines(student_id)
+        total_due_fines += fines["total"]
+        students.append(
+            {
+                "id": student_id,
+                "name": row[1] if len(row) > 1 else "",
+                "institution": institution,
+                "department": department,
+                "year": year,
+                "address": address,
+                "borrowed_count": len(borrows),
+                "due_fine": fines["total"],
+            }
+        )
+
+    payments = []
+    for row in _read_rows(FINE_PAYMENTS_CSV):
+        if len(row) < 5:
+            continue
+        payments.append(
+            {
+                "payment_id": row[0],
+                "student_id": row[1],
+                "amount": float(row[2]) if row[2] else 0.0,
+                "paid_on": row[3],
+                "method": row[4],
+                "reference": row[5] if len(row) > 5 else "",
+            }
+        )
+
+    payments.sort(key=lambda item: item["payment_id"], reverse=True)
+    return {
+        "stats": {
+            "total_books": total_books,
+            "available_books": available_books,
+            "issued_books": issued_books,
+            "active_students": len(students),
+            "active_borrows": len(_read_rows(BORROWS_CSV)),
+            "total_due_fines": total_due_fines,
+        },
+        "students": students,
+        "recent_payments": payments[:25],
+    }
 
 
 def deregister_student(student_id):

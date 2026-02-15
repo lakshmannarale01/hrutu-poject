@@ -6,12 +6,18 @@ from library_ops import (
     borrow_book,
     check_fines,
     deregister_student,
+    get_librarian_profile,
     get_borrowed_books,
+    get_student_profile,
     list_books,
+    pay_fine,
     register_librarian,
     remove_book,
     return_book,
+    get_librarian_dashboard_data,
+    update_librarian_profile,
     update_book,
+    update_student_profile,
 )
 
 app = Flask(__name__)
@@ -32,7 +38,13 @@ def login():
 def signup():
     data = request.json
     ok, error = register_student(
-        data.get("student_id"), data.get("name"), data.get("password"), data.get("department")
+        data.get("student_id"),
+        data.get("name"),
+        data.get("password"),
+        data.get("institution"),
+        data.get("department"),
+        data.get("year"),
+        data.get("address"),
     )
     if ok:
         return jsonify({"success": True})
@@ -42,9 +54,16 @@ def signup():
 @app.route("/librarian/register", methods=["POST"])
 def librarian_register():
     data = request.json
-    if not data.get("name") or not data.get("password"):
-        return jsonify({"success": False, "error": "Name and password required."}), 400
-    librarian_id = register_librarian(data.get("name"), data.get("password"))
+    required = ["name", "password", "institution", "department", "address"]
+    if any(not data.get(field) for field in required):
+        return jsonify({"success": False, "error": "All fields are required."}), 400
+    librarian_id = register_librarian(
+        data.get("name"),
+        data.get("password"),
+        data.get("institution"),
+        data.get("department"),
+        data.get("address"),
+    )
     return jsonify({"success": True, "id": librarian_id})
 
 
@@ -110,6 +129,71 @@ def return_borrow():
 @app.route("/students/<student_id>/fines", methods=["GET"])
 def fines(student_id):
     return jsonify(check_fines(student_id))
+
+
+@app.route("/students/<student_id>/fines/pay", methods=["POST"])
+def fine_payment(student_id):
+    data = request.json or {}
+    try:
+        amount = float(data.get("amount", 0))
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "error": "Invalid amount."}), 400
+    ok, error, payment = pay_fine(
+        student_id,
+        amount,
+        data.get("method", "qr"),
+        data.get("reference", ""),
+    )
+    if ok:
+        return jsonify({"success": True, "payment": payment})
+    return jsonify({"success": False, "error": error}), 400
+
+
+@app.route("/students/<student_id>/profile", methods=["GET"])
+def student_profile(student_id):
+    profile = get_student_profile(student_id)
+    if not profile:
+        return jsonify({"success": False, "error": "Student not found"}), 404
+    return jsonify({"success": True, "profile": profile})
+
+
+@app.route("/students/<student_id>/profile", methods=["PUT"])
+def student_profile_update(student_id):
+    data = request.json or {}
+    try:
+        ok, error, updated = update_student_profile(student_id, data)
+    except PermissionError as e:
+        return jsonify({"success": False, "error": str(e)}), 423
+    if not ok:
+        code = 404 if error == "Student not found." else 400
+        return jsonify({"success": False, "error": error}), code
+    return jsonify({"success": True, "profile": updated})
+
+
+@app.route("/librarians/<librarian_id>/profile", methods=["GET"])
+def librarian_profile(librarian_id):
+    profile = get_librarian_profile(librarian_id)
+    if not profile:
+        return jsonify({"success": False, "error": "Librarian not found"}), 404
+    return jsonify({"success": True, "profile": profile})
+
+
+@app.route("/librarians/<librarian_id>/profile", methods=["PUT"])
+def librarian_profile_update(librarian_id):
+    data = request.json or {}
+    try:
+        ok, error, updated = update_librarian_profile(librarian_id, data)
+    except PermissionError as e:
+        return jsonify({"success": False, "error": str(e)}), 423
+    if not ok:
+        code = 404 if error == "Librarian not found." else 400
+        return jsonify({"success": False, "error": error}), code
+    return jsonify({"success": True, "profile": updated})
+
+
+@app.route("/librarians/dashboard", methods=["GET"])
+def librarian_dashboard():
+    return jsonify({"success": True, "data": get_librarian_dashboard_data()})
 
 
 @app.route("/students/<student_id>/deregister", methods=["POST"])

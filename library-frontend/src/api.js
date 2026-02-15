@@ -83,6 +83,48 @@ export async function getFines(student_id) {
   return res.json();
 }
 
+export async function payFine(student_id, amount, reference = "", method = "qr") {
+  const res = await fetch(`${BASE_URL}/students/${student_id}/fines/pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, reference, method }),
+  });
+  return res.json();
+}
+
+export async function getStudentProfile(student_id) {
+  const res = await fetch(`${BASE_URL}/students/${student_id}/profile`);
+  return res.json();
+}
+
+export async function updateStudentProfile(student_id, payload) {
+  const res = await fetch(`${BASE_URL}/students/${student_id}/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function getLibrarianProfile(librarian_id) {
+  const res = await fetch(`${BASE_URL}/librarians/${librarian_id}/profile`);
+  return res.json();
+}
+
+export async function updateLibrarianProfile(librarian_id, payload) {
+  const res = await fetch(`${BASE_URL}/librarians/${librarian_id}/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function getLibrarianDashboard() {
+  const res = await fetch(`${BASE_URL}/librarians/dashboard`);
+  return res.json();
+}
+
 export async function deregisterStudent(student_id) {
   const res = await fetch(`${BASE_URL}/students/${student_id}/deregister`, {
     method: "POST",

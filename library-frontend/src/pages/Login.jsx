@@ -11,12 +11,12 @@ export default function Login({ onLogin }) {
 
   const role = useMemo(() => {
     const current = searchParams.get("role");
-    return current === "student" ? "student" : "librarian";
+    return current === "librarian" ? "librarian" : "student";
   }, [searchParams]);
 
   useEffect(() => {
     if (!searchParams.get("role")) {
-      setSearchParams({ role: "librarian" }, { replace: true });
+      setSearchParams({ role: "student" }, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -25,7 +25,7 @@ export default function Login({ onLogin }) {
       const res = await login(username, password, role);
       if (res.success) {
         onLogin(res.user);
-        navigate("/books");
+        navigate(role === "librarian" ? "/dashboard" : "/books");
       } else {
         setError("Invalid credentials. Please try again.");
       }
@@ -135,23 +135,23 @@ export default function Login({ onLogin }) {
 
         <div className="relative">
           <p className="text-sm uppercase tracking-[0.3em] text-[#5a6b7b]">
-            Today at a glance
+            Library Features
           </p>
           <h3 className="mt-3 text-2xl font-semibold text-[#1c232b]">
-            Curate the perfect reading experience
+            Built for your current workflow
           </h3>
 
           <div className="mt-6 grid gap-4">
             {(role === "librarian"
               ? [
-                  { label: "New arrivals staged", value: "24" },
-                  { label: "Active checkouts", value: "312" },
-                  { label: "Overdue reminders", value: "7" },
+                  { label: "Add, update, remove books", value: "Catalog" },
+                  { label: "Track availability", value: "Live stock" },
+                  { label: "Manage profile details", value: "Editable" },
                 ]
               : [
-                  { label: "Your current loans", value: "3" },
-                  { label: "Recommended picks", value: "12" },
-                  { label: "Holds waiting", value: "1" },
+                  { label: "Borrow and return books", value: "Student flow" },
+                  { label: "Pay fines using QR", value: "Integrated" },
+                  { label: "Maintain your profile", value: "Editable" },
                 ]
             ).map((stat) => (
               <div
@@ -168,10 +168,10 @@ export default function Login({ onLogin }) {
 
           <div className="mt-8 rounded-2xl border border-white/60 bg-white/70 p-4">
             <p className="text-xs uppercase tracking-[0.3em] text-[#5a6b7b]">
-              System status
+              Project scope
             </p>
             <p className="mt-2 text-sm text-[#1c232b]">
-              All services connected. Last sync 2 minutes ago.
+              Role-based login, book management, profile management, and fine payment are all part of this project.
             </p>
           </div>
         </div>
